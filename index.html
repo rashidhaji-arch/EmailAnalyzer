@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Analyzer - Forensic & Network Investigation</title>
+    <script src="https://cdn.tailwindcss.com" integrity="sha384-L+W+I7KGQKR12dxf4wAATb5rLiQZQd8j6jvvZY18gNILlar0NSYAaNfFrPDwkS5W" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow">
+            <div class="max-w-7xl mx-auto px-4 py-6">
+                <h1 class="text-3xl font-bold text-blue-600 dark:text-blue-400">📧 Email Analyzer</h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-2">Forensic email header analysis, DNS/DMARC verification, IP reputation & abuse contacts</p>
+            </div>
+        </header>
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-8">
+            <section class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+                <h2 class="text-xl font-semibold mb-4">📥 Input Email Headers</h2>
+                <div class="mb-6">
+                    <label for="input-area" class="block text-sm font-medium mb-2">Paste raw email headers or full .eml content:</label>
+                    <textarea id="input-area" placeholder="Paste complete email headers here..." class="w-full h-32 p-3 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 font-mono text-sm"></textarea>
+                </div>
+                <div class="mb-6">
+                    <label for="file-input" class="block text-sm font-medium mb-2">Or upload .eml file:</label>
+                    <input type="file" id="file-input" accept=".eml,.txt" class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-300"/>
+                </div>
+                <div class="flex gap-4">
+                    <button id="analyze-btn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded transition">🔍 Analyze Email</button>
+                    <button id="clear-btn" class="px-6 py-2 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-900 dark:text-gray-100 font-semibold rounded transition">🗑️ Clear</button>
+                </div>
+            </section>
+            <div id="error-messages" class="mb-6"></div>
+            <div class="flex gap-4 mb-6">
+                <button id="view-toggle-basic" class="view-toggle-btn px-6 py-2 font-semibold rounded transition" data-view="basic">👤 Basic View</button>
+                <button id="view-toggle-advanced" class="view-toggle-btn px-6 py-2 font-semibold rounded transition" data-view="advanced">🔧 Advanced View</button>
+            </div>
+            <section id="basic-view" class="view-section">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold mb-4">🔐 Authentication Status</h3>
+                        <div id="auth-badges" class="space-y-3"></div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold mb-4">📬 Sender Information</h3>
+                        <div class="space-y-2 font-mono text-sm">
+                            <p><span class="font-semibold">From:</span> <span id="sender-from">—</span></p>
+                            <p><span class="font-semibold">To:</span> <span id="sender-to">—</span></p>
+                            <p><span class="font-semibold">Subject:</span> <span id="sender-subject">—</span></p>
+                            <p><span class="font-semibold">Date:</span> <span id="sender-date">—</span></p>
+                            <p><span class="font-semibold">Message-ID:</span> <span id="sender-msgid" class="break-all">—</span></p>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold mb-4">🌐 Sending IP & Provider</h3>
+                        <div class="space-y-3">
+                            <p><span class="font-semibold">Sending IP:</span> <span id="sending-ip" class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">—</span></p>
+                            <p><span class="font-semibold">ESP/Network:</span> <span id="esp-provider" class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">—</span></p>
+                            <p><span class="font-semibold">Abuse Contact:</span> <span id="esp-abuse-email" class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">—</span></p>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold mb-4">🚨 Blacklist Status</h3>
+                        <div id="blacklist-status" class="space-y-2"></div>
+                    </div>
+                </div>
+                <div class="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                    <button id="abuse-report-btn" class="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded transition">📬 One-Click Abuse Report (via Email)</button>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Opens your email client with pre-filled abuse report to the identified contact.</p>
+                </div>
+            </section>
+            <section id="advanced-view" class="view-section hidden">
+                <div class="space-y-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold mb-4">📊 Received Hops Chain</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm font-mono">
+                                <thead class="bg-gray-100 dark:bg-gray-700">
+                                    <tr>
+                                        <th class="text-left px-3 py-2 font-semibold">Hop #</th>
+                                        <th class="text-left px-3 py-2 font-semibold">IP Address</th>
+                                        <th class="text-left px-3 py-2 font-semibold">Hostname</th>
+                                        <th class="text-left px-3 py-2 font-semibold">Timestamp</th>
+                                        <th class="text-right px-3 py-2 font-semibold">Latency (s)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hops-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold mb-4">📋 DNS Records (SPF / DMARC)</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="font-semibold text-sm mb-2">SPF Record:</h4>
+                                <pre id="dns-spf" class="bg-gray-100 dark:bg-gray-700 p-3 rounded text-xs overflow-x-auto">Loading...</pre>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-sm mb-2">DMARC Record:</h4>
+                                <pre id="dns-dmarc" class="bg-gray-100 dark:bg-gray-700 p-3 rounded text-xs overflow-x-auto">Loading...</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold mb-4">🔍 RDAP Lookup (Raw JSON)</h3>
+                        <pre id="rdap-json" class="bg-gray-100 dark:bg-gray-700 p-3 rounded text-xs overflow-x-auto" style="max-height: 300px;">Loading...</pre>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold mb-4">📄 Raw Email Headers</h3>
+                        <pre id="raw-headers" class="bg-gray-100 dark:bg-gray-700 p-3 rounded text-xs overflow-x-auto" style="max-height: 300px;">Loading...</pre>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-12">
+            <div class="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-600 dark:text-gray-400">
+                <p>🔒 All email analysis happens in your browser. No data is sent to servers beyond public APIs.</p>
+                <p class="mt-2"><a href="https://github.com/rashidhaji-arch/EmailAnalyzer" target="_blank" class="text-blue-600 hover:underline">GitHub Repository</a></p>
+            </div>
+        </footer>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

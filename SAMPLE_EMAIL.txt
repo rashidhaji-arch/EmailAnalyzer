@@ -1,0 +1,23 @@
+Received: from smtp.google.com (smtp.google.com. [142.251.32.27])
+        by mail.example.com with ESMTPS id abc123def456
+        for <user@example.com>; Thu, 31 Jul 2026 12:34:56 +0000
+Received: from localhost (localhost [127.0.0.1])
+        by smtp.google.com with SMTP id xyz789
+        ; Thu, 31 Jul 2026 12:34:50 +0000
+Authentication-Results: mail.example.com;
+        spf=pass (google.com: domain of sender@google.com designates 142.251.32.27 as permitted sender) smtp.mailfrom=sender@google.com;
+        dkim=pass header.d=google.com header.s=20210112;
+        dmarc=pass (p=none dis=none) header.from=google.com
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=20210112;
+        h=from:to:subject:date:message-id;
+        bh=abcdefghij1234567890=;
+        b=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+From: sender@google.com
+To: user@example.com
+Subject: Test Email for Email Analyzer
+Date: Thu, 31 Jul 2026 12:34:50 +0000
+Message-ID: <test-email-analyzer@google.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+
+This is a test email body. The headers above are used to test the Email Analyzer.

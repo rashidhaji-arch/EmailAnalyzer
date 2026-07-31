@@ -1,0 +1,134 @@
+/* View toggle button styling */
+.view-toggle-btn {
+    background-color: #e5e7eb;
+    color: #111827;
+    padding: 0.5rem 1.5rem;
+    font-weight: 600;
+    border-radius: 0.375rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.view-toggle-btn.active {
+    background-color: #2563eb;
+    color: white;
+}
+
+@media (prefers-color-scheme: dark) {
+    .view-toggle-btn {
+        background-color: #374151;
+        color: #f3f4f6;
+    }
+    .view-toggle-btn.active {
+        background-color: #2563eb;
+        color: white;
+    }
+}
+
+/* View section transitions */
+.view-section {
+    transition: opacity 0.3s ease;
+}
+
+.view-section.hidden {
+    display: none;
+}
+
+/* Authentication badge styling */
+.auth-badge {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    color: white;
+    text-align: center;
+    margin-bottom: 0.75rem;
+}
+
+.auth-pass {
+    background-color: #22c55e;
+}
+
+.auth-fail {
+    background-color: #ef4444;
+}
+
+.auth-unknown {
+    background-color: #9ca3af;
+}
+
+/* Blacklist item styling */
+.blacklist-item {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.blacklist-clean {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.blacklist-listed {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.blacklist-checking {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+@media (prefers-color-scheme: dark) {
+    .blacklist-clean {
+        background-color: #064e3b;
+        color: #dcfce7;
+    }
+    .blacklist-listed {
+        background-color: #7f1d1d;
+        color: #fecaca;
+    }
+    .blacklist-checking {
+        background-color: #713f12;
+        color: #fef3c7;
+    }
+}
+
+/* Error and warning alert styling */
+.error-alert {
+    background-color: #fee2e2;
+    border: 1px solid #fca5a5;
+    color: #b91c1c;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+}
+
+.warning-alert {
+    background-color: #fef3c7;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+}
+
+/* Hops table styling */
+#hops-table tr:nth-child(even) {
+    background-color: #f9fafb;
+}
+
+#hops-table tr:hover {
+    background-color: #eff6ff;
+}
+
+@media (prefers-color-scheme: dark) {
+    #hops-table tr:nth-child(even) {
+        background-color: #374151;
+    }
+    #hops-table tr:hover {
+        background-color: #1e3a8a;
+    }
+}
