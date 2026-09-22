@@ -1,3 +1,13 @@
+// ─── Worker Configuration ─────────────────────────────────────────────────────
+// Deploy worker.js to Cloudflare Workers (free), then paste your Worker URL here.
+// Without this, blacklist checks cannot run — browser JS cannot query DNSBL zones
+// directly because the major blacklist providers block shared public DNS resolvers.
+//
+// Steps: https://dash.cloudflare.com → Workers & Pages → Create Worker
+//        Paste worker.js → Deploy → copy URL → paste below → push to GitHub
+//
+const WORKER_URL = ''; // e.g. 'https://email-dnsbl.yourname.workers.dev'
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const PRIVATE_RANGES = [
@@ -264,34 +274,33 @@ async function queryRDAP(ip) {
 
 // ─── DNSBL Checking ───────────────────────────────────────────────────────────
 
-function reverseIPv4(ip) {
-    const parts = ip.split('.');
-    return parts.length === 4 ? parts.reverse().join('.') : null;
-}
-
-async function checkDNSBL(ip, host) {
-    if (ip.includes(':')) return { listed: false, error: 'IPv6 not checked' };
-    const rev = reverseIPv4(ip);
-    if (!rev) return { listed: false, error: 'Invalid IP' };
-    const query = `${rev}.${host}`;
-    try {
-        const res = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(query)}&type=A`);
-        if (!res.ok) return { listed: false, error: `HTTP ${res.status}` };
-        const data = await res.json();
-        if (data.Status === 3) return { listed: false, error: null }; // NXDOMAIN = not listed
-        if (data.Status !== 0) return { listed: false, error: `DNS ${data.Status}` };
-        const listed = (data.Answer || []).some(a => a.type === 1 && a.data.startsWith('127.'));
-        return { listed, error: null };
-    } catch (err) {
-        return { listed: false, error: err.message };
-    }
-}
+// ─── DNSBL Checking ───────────────────────────────────────────────────────────
+// DNSBL checking requires a server-side resolver. Browser JS cannot query DNSBL
+// zones directly: Cloudflare's and Google's public DoH APIs do not respond to
+// these zones, so all checks silently return clean regardless of the IP's status.
+//
+// The solution is the included worker.js deployed to Cloudflare Workers (free).
+// Set WORKER_URL above to enable this feature.
 
 async function checkAllBlacklists(ip) {
-    return Promise.all(DNSBL_LIST.map(async bl => ({
-        ...bl,
-        ...(await checkDNSBL(ip, bl.host))
-    })));
+    if (!WORKER_URL) {
+        // Return a single placeholder so the UI can show a setup prompt
+        return [{ name: '_setup_required', listed: false, error: null }];
+    }
+
+    try {
+        const res = await fetch(`${WORKER_URL.replace(/\/$/, '')}?ip=${encodeURIComponent(ip)}`);
+        if (!res.ok) {
+            const text = await res.text().catch(() => `HTTP ${res.status}`);
+            throw new Error(`Worker returned ${res.status}: ${text.slice(0, 120)}`);
+        }
+        const data = await res.json();
+        if (!Array.isArray(data)) throw new Error('Unexpected worker response format');
+        return data;
+    } catch (err) {
+        // Return a single error entry so the UI shows what went wrong
+        return [{ name: '_worker_error', listed: false, error: err.message }];
+    }
 }
 
 // ─── Render Helpers ───────────────────────────────────────────────────────────
@@ -408,6 +417,31 @@ function renderOriginatingIP(hop, rdap) {
 
 function renderBlacklists(results) {
     const container = document.getElementById('blacklist-status');
+
+    if (results.length === 1 && results[0].name === '_setup_required') {
+        container.innerHTML = `
+            <div class="bl-setup-notice">
+                <p class="font-semibold mb-1">Blacklist checks require a one-time setup</p>
+                <p class="text-xs mb-2">
+                    Browser JavaScript cannot query DNSBL zones — major blacklist providers
+                    (Spamhaus, SpamCop, etc.) block shared public DNS resolvers. The included
+                    <code>worker.js</code> runs on Cloudflare's edge where these queries work.
+                </p>
+                <ol class="text-xs space-y-1 list-decimal list-inside">
+                    <li>Go to <a href="https://dash.cloudflare.com" target="_blank" class="underline">dash.cloudflare.com</a> → Workers &amp; Pages → Create application → Create Worker</li>
+                    <li>Paste the contents of <code>worker.js</code> from this repo, click Deploy</li>
+                    <li>Copy the Worker URL (e.g. <code>https://email-dnsbl.yourname.workers.dev</code>)</li>
+                    <li>Open <code>app.js</code>, set <code>WORKER_URL = 'your-url-here'</code> at the top, push to GitHub</li>
+                </ol>
+            </div>`;
+        return;
+    }
+
+    if (results.length === 1 && results[0].name === '_worker_error') {
+        container.innerHTML = `<div class="bl-item bl-error">⚠️ Worker error: ${escapeHtml(results[0].error)}</div>`;
+        return;
+    }
+
     container.innerHTML = results.map(r => {
         if (r.error) {
             return `<div class="bl-item bl-error">⚠️ ${escapeHtml(r.name)}: ${escapeHtml(r.error)}</div>`;

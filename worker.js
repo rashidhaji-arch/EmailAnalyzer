@@ -1,150 +1,94 @@
 /**
- * Cloudflare Worker — Spamhaus DNSBL Proxy
+ * Cloudflare Worker — DNSBL Proxy for Email Analyzer
  *
- * Browser cannot query Spamhaus directly because Spamhaus blocks shared public
- * DNS resolvers (1.1.1.1, 8.8.8.8). This Worker runs on the Cloudflare edge
- * and queries Spamhaus using Cloudflare's own resolver, then returns JSON to
- * the browser with proper CORS headers.
+ * Browser JavaScript cannot query DNSBL zones because:
+ *   1. Spamhaus and others block queries from shared public resolvers (1.1.1.1, 8.8.8.8)
+ *   2. Cloudflare's and Google's public DoH APIs enforce these restrictions
  *
- * Deploy steps:
- *   1. Go to https://dash.cloudflare.com/
- *   2. Workers & Pages > Create Service
- *   3. Paste this file into the editor
- *   4. Deploy
- *   5. Copy Worker URL → paste into app.js querySpamhausWorker() workerUrl const
+ * This Worker runs on Cloudflare's edge and uses Cloudflare's internal resolver,
+ * which IS allowed to query all major DNSBL zones. Results are returned as JSON
+ * with proper CORS headers so the browser app can read them.
+ *
+ * ── Deployment (free, ~2 minutes) ────────────────────────────────────────────
+ *   1. Go to https://dash.cloudflare.com → Workers & Pages → Create application
+ *   2. Click "Create Worker" → name it anything (e.g. "email-dnsbl")
+ *   3. Click "Edit code", paste the contents of this file, click "Deploy"
+ *   4. Copy the Worker URL  (e.g. https://email-dnsbl.yourname.workers.dev)
+ *   5. Open app.js and paste that URL as the value of WORKER_URL at the top
+ *   6. Commit and push — blacklist checks will now work
+ * ─────────────────────────────────────────────────────────────────────────────
  */
+
+const DNSBL_LIST = [
+    { name: 'Spamhaus ZEN',  host: 'zen.spamhaus.org' },
+    { name: 'SpamCop',       host: 'bl.spamcop.net' },
+    { name: 'Barracuda',     host: 'b.barracudacentral.org' },
+    { name: 'UCEProtect L1', host: 'dnsbl.uceprotect.net' },
+    { name: 'PSBL',          host: 'psbl.surriel.com' },
+    { name: 'NordSpam',      host: 'dnsbl.nordspam.com' },
+];
 
 export default {
     async fetch(request) {
-        // CORS preflight
         if (request.method === 'OPTIONS') {
-            return new Response(null, {
-                status: 204,
-                headers: {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'POST',
-                    'Access-Control-Allow-Headers': 'Content-Type'
-                }
-            });
+            return corsResponse(null, 204);
         }
 
-        if (request.method !== 'POST') {
-            return jsonResponse({ error: 'POST required' }, 405);
-        }
+        const url = new URL(request.url);
+        const ip = url.searchParams.get('ip');
 
-        let payload;
-        try {
-            payload = await request.json();
-        } catch (_) {
-            return jsonResponse({ error: 'Invalid JSON body' }, 400);
-        }
+        if (!ip) return corsResponse({ error: 'Missing ?ip= parameter' }, 400);
+        if (!isValidIPv4(ip)) return corsResponse({ error: 'Invalid IPv4 address' }, 400);
 
-        const ip = payload.ip;
-        if (!ip || typeof ip !== 'string') {
-            return jsonResponse({ error: 'ip parameter required' }, 400);
-        }
+        const reversed = ip.split('.').reverse().join('.');
+        const results = await Promise.all(
+            DNSBL_LIST.map(bl => checkDNSBL(reversed, bl))
+        );
 
-        // Validate IP format before forwarding to Spamhaus
-        if (!isValidIP(ip)) {
-            return jsonResponse({ error: 'Invalid IP address format' }, 400);
-        }
-
-        const result = await querySpamhausZen(ip);
-        return jsonResponse(result, 200);
+        return corsResponse(results, 200);
     }
 };
 
-function jsonResponse(data, status) {
-    return new Response(JSON.stringify(data), {
-        status,
-        headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-        }
+async function checkDNSBL(reversedIP, bl) {
+    const query = `${reversedIP}.${bl.host}`;
+    try {
+        const res = await fetch(
+            `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(query)}&type=A`,
+            { headers: { 'Accept': 'application/dns-json' } }
+        );
+        if (!res.ok) return { ...bl, listed: false, error: `HTTP ${res.status}` };
+
+        const data = await res.json();
+
+        if (data.Status === 3) return { ...bl, listed: false, error: null };           // NXDOMAIN = not listed
+        if (data.Status === 2) return { ...bl, listed: false, error: 'SERVFAIL' };     // resolver error
+        if (data.Status !== 0) return { ...bl, listed: false, error: `DNS ${data.Status}` };
+
+        const listed = (data.Answer || []).some(a => a.type === 1 && a.data.startsWith('127.'));
+        const response = listed ? (data.Answer.find(a => a.type === 1)?.data || null) : null;
+        return { ...bl, listed, response, error: null };
+    } catch (err) {
+        return { ...bl, listed: false, error: err.message };
+    }
+}
+
+function isValidIPv4(ip) {
+    const parts = ip.split('.');
+    return parts.length === 4 && parts.every(p => {
+        const n = parseInt(p, 10);
+        return String(n) === p && n >= 0 && n <= 255;
     });
 }
 
-function isValidIP(ip) {
-    // IPv4
-    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) {
-        return ip.split('.').every(o => parseInt(o, 10) <= 255);
-    }
-    // IPv6 (simplified check)
-    if (/^[0-9a-f:]{2,39}$/i.test(ip)) {
-        return true;
-    }
-    return false;
-}
-
-async function querySpamhausZen(ip) {
-    const reversedIP = reverseIP(ip);
-    if (!reversedIP) {
-        return { listed: false, error: 'Could not reverse IP for DNSBL query' };
-    }
-
-    const hostname = `${reversedIP}.zen.spamhaus.org`;
-
-    try {
-        const response = await fetch(
-            `https://cloudflare-dns.com/dns-query?name=${hostname}&type=A`,
-            { headers: { 'Accept': 'application/dns-json' } }
-        );
-
-        if (!response.ok) {
-            return { listed: false, error: `DNS lookup failed: HTTP ${response.status}` };
-        }
-
-        const data = await response.json();
-
-        // NXDOMAIN (Status 3) = not listed
-        if (data.Status === 3) {
-            return { listed: false, error: null };
-        }
-
-        // Any A record in 127.0.0.0/24 means the IP is listed
-        if (data.Answer) {
-            for (const answer of data.Answer) {
-                if (answer.type === 1 && answer.data.startsWith('127.0.0')) {
-                    return { listed: true, error: null };
-                }
-            }
-        }
-
-        return { listed: false, error: null };
-    } catch (err) {
-        return { listed: false, error: err.message };
-    }
-}
-
-function reverseIP(ip) {
-    if (ip.includes('.')) {
-        const octets = ip.split('.');
-        if (octets.length !== 4) return null;
-        return octets.reverse().join('.');
-    }
-    if (ip.includes(':')) {
-        return reverseIPv6(ip);
-    }
-    return null;
-}
-
-function reverseIPv6(ipv6) {
-    ipv6 = ipv6.replace(/[\[\]]/g, '');
-    const expanded = expandIPv6(ipv6);
-    if (!expanded) return null;
-    const hex = expanded.replace(/:/g, '');
-    return hex.split('').reverse().join('.');
-}
-
-function expandIPv6(ipv6) {
-    if (ipv6.includes('::')) {
-        const parts = ipv6.split('::');
-        if (parts.length !== 2) return null;
-        const left = parts[0] ? parts[0].split(':') : [];
-        const right = parts[1] ? parts[1].split(':') : [];
-        const missing = 8 - left.length - right.length;
-        const expanded = [...left, ...Array(missing).fill('0'), ...right];
-        return expanded.map(p => p.padStart(4, '0')).join(':');
-    }
-    return ipv6;
+function corsResponse(body, status) {
+    const headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+    };
+    if (body === null) return new Response(null, { status, headers });
+    return new Response(JSON.stringify(body), {
+        status,
+        headers: { ...headers, 'Content-Type': 'application/json' },
+    });
 }
