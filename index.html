@@ -3,123 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Analyzer - Forensic & Network Investigation</title>
+    <title>Email Header Analyzer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-    <div class="min-h-screen flex flex-col">
-        <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow">
-            <div class="max-w-7xl mx-auto px-4 py-6">
-                <h1 class="text-3xl font-bold text-blue-600 dark:text-blue-400">📧 Email Analyzer</h1>
-                <p class="text-gray-600 dark:text-gray-400 mt-2">Forensic email header analysis, DNS/DMARC verification, IP reputation & abuse contacts</p>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
+
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-5">
+            <h1 class="text-2xl font-bold text-blue-600 dark:text-blue-400">Email Header Analyzer</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Identify the real sender, originating IP, and authentication status — all in-browser, no data sent to any server.</p>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-8 space-y-6">
+
+        <!-- Input -->
+        <section class="card">
+            <h2 class="section-title">Input</h2>
+            <label class="block text-sm font-medium mb-2">Paste raw email headers or full .eml content <span class="text-gray-400">(Ctrl+Enter to analyze)</span></label>
+            <textarea id="input-area" rows="8"
+                class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 font-mono text-xs resize-y"
+                placeholder="Paste headers here…"></textarea>
+            <div class="mt-3 flex flex-wrap gap-3 items-center">
+                <label class="text-sm font-medium">Or upload .eml file:</label>
+                <input type="file" id="file-input" accept=".eml,.txt"
+                    class="text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-300"/>
             </div>
-        </header>
-        <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-8">
-            <section class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
-                <h2 class="text-xl font-semibold mb-4">📥 Input Email Headers</h2>
-                <div class="mb-6">
-                    <label for="input-area" class="block text-sm font-medium mb-2">Paste raw email headers or full .eml content:</label>
-                    <textarea id="input-area" placeholder="Paste complete email headers here..." class="w-full h-32 p-3 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 font-mono text-sm"></textarea>
-                </div>
-                <div class="mb-6">
-                    <label for="file-input" class="block text-sm font-medium mb-2">Or upload .eml file:</label>
-                    <input type="file" id="file-input" accept=".eml,.txt" class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-300"/>
-                </div>
-                <div class="flex gap-4">
-                    <button id="analyze-btn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded transition">🔍 Analyze Email</button>
-                    <button id="clear-btn" class="px-6 py-2 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-900 dark:text-gray-100 font-semibold rounded transition">🗑️ Clear</button>
-                </div>
-            </section>
-            <div id="error-messages" class="mb-6"></div>
-            <div class="flex gap-4 mb-6">
-                <button id="view-toggle-basic" class="view-toggle-btn px-6 py-2 font-semibold rounded transition" data-view="basic">👤 Basic View</button>
-                <button id="view-toggle-advanced" class="view-toggle-btn px-6 py-2 font-semibold rounded transition" data-view="advanced">🔧 Advanced View</button>
+            <div class="mt-4 flex gap-3">
+                <button id="analyze-btn" class="btn-primary">Analyze</button>
+                <button id="clear-btn" class="btn-secondary">Clear</button>
             </div>
-            <section id="basic-view" class="view-section">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-semibold mb-4">🔐 Authentication Status</h3>
-                        <div id="auth-badges" class="space-y-3"></div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-semibold mb-4">📬 Sender Information</h3>
-                        <div class="space-y-2 font-mono text-sm">
-                            <p><span class="font-semibold">From:</span> <span id="sender-from">—</span></p>
-                            <p><span class="font-semibold">To:</span> <span id="sender-to">—</span></p>
-                            <p><span class="font-semibold">Subject:</span> <span id="sender-subject">—</span></p>
-                            <p><span class="font-semibold">Date:</span> <span id="sender-date">—</span></p>
-                            <p><span class="font-semibold">Message-ID:</span> <span id="sender-msgid" class="break-all">—</span></p>
-                        </div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-semibold mb-4">🌐 Sending IP & Provider</h3>
-                        <div class="space-y-3">
-                            <p><span class="font-semibold">Sending IP:</span> <span id="sending-ip" class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">—</span></p>
-                            <p><span class="font-semibold">ESP/Network:</span> <span id="esp-provider" class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">—</span></p>
-                            <p><span class="font-semibold">Abuse Contact:</span> <span id="esp-abuse-email" class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">—</span></p>
-                        </div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-semibold mb-4">🚨 Blacklist Status</h3>
-                        <div id="blacklist-status" class="space-y-2"></div>
-                    </div>
-                </div>
-                <div class="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                    <button id="abuse-report-btn" class="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded transition">📬 One-Click Abuse Report (via Email)</button>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Opens your email client with pre-filled abuse report to the identified contact.</p>
-                </div>
-            </section>
-            <section id="advanced-view" class="view-section hidden">
-                <div class="space-y-6">
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-semibold mb-4">📊 Received Hops Chain</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm font-mono">
-                                <thead class="bg-gray-100 dark:bg-gray-700">
-                                    <tr>
-                                        <th class="text-left px-3 py-2 font-semibold">Hop #</th>
-                                        <th class="text-left px-3 py-2 font-semibold">IP Address</th>
-                                        <th class="text-left px-3 py-2 font-semibold">Hostname</th>
-                                        <th class="text-left px-3 py-2 font-semibold">Timestamp</th>
-                                        <th class="text-right px-3 py-2 font-semibold">Latency (s)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="hops-table"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-semibold mb-4">📋 DNS Records (SPF / DMARC)</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <h4 class="font-semibold text-sm mb-2">SPF Record:</h4>
-                                <pre id="dns-spf" class="bg-gray-100 dark:bg-gray-700 p-3 rounded text-xs overflow-x-auto">Loading...</pre>
-                            </div>
-                            <div>
-                                <h4 class="font-semibold text-sm mb-2">DMARC Record:</h4>
-                                <pre id="dns-dmarc" class="bg-gray-100 dark:bg-gray-700 p-3 rounded text-xs overflow-x-auto">Loading...</pre>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-semibold mb-4">🔍 RDAP Lookup (Raw JSON)</h3>
-                        <pre id="rdap-json" class="bg-gray-100 dark:bg-gray-700 p-3 rounded text-xs overflow-x-auto" style="max-height: 300px;">Loading...</pre>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-semibold mb-4">📄 Raw Email Headers</h3>
-                        <pre id="raw-headers" class="bg-gray-100 dark:bg-gray-700 p-3 rounded text-xs overflow-x-auto" style="max-height: 300px;">Loading...</pre>
-                    </div>
-                </div>
-            </section>
-        </main>
-        <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-12">
-            <div class="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-600 dark:text-gray-400">
-                <p>🔒 All email analysis happens in your browser. No data is sent to servers beyond public APIs.</p>
-                <p class="mt-2"><a href="https://github.com/rashidhaji-arch/EmailAnalyzer" target="_blank" class="text-blue-600 hover:underline">GitHub Repository</a></p>
+        </section>
+
+        <!-- Loading -->
+        <div id="loading-indicator" class="hidden flex items-center gap-3 text-blue-600 dark:text-blue-400">
+            <div class="spinner"></div>
+            <span class="text-sm font-medium">Analyzing — querying DNS, RDAP, and blacklists…</span>
+        </div>
+
+        <!-- Messages -->
+        <div id="messages" class="space-y-2"></div>
+
+        <!-- Results -->
+        <div id="results" class="hidden space-y-4">
+
+            <!-- Spoofing Alert Banner -->
+            <div id="spoof-alert" class="hidden spoof-banner"></div>
+
+            <!-- View Toggle -->
+            <div class="flex gap-2">
+                <button class="view-toggle-btn" data-view="basic">Summary View</button>
+                <button class="view-toggle-btn" data-view="advanced">Advanced View</button>
             </div>
-        </footer>
-    </div>
+
+            <!-- ── Basic View ─────────────────────────────────────────────── -->
+            <div id="basic-view" class="space-y-4">
+
+                <!-- Authentication Row -->
+                <div class="card">
+                    <h3 class="section-title">Authentication</h3>
+                    <div id="auth-badges" class="flex flex-wrap gap-3"></div>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">
+                        SPF verified against the originating IP via <code>Received-SPF</code>.
+                        DMARC reflects the last server in the delivery chain that evaluated it
+                        (may differ from origin if the email was forwarded).
+                    </p>
+                </div>
+
+                <!-- Two-column: Sender Identity + Originating IP -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                    <!-- Sender Identity -->
+                    <div class="card">
+                        <h3 class="section-title">Sender Identity</h3>
+                        <table class="meta-table">
+                            <tr>
+                                <td class="meta-label">From</td>
+                                <td>
+                                    <div id="sender-from-email" class="font-mono text-sm break-all"></div>
+                                    <div id="sender-from-display" class="text-xs text-gray-500 dark:text-gray-400 italic"></div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="meta-label">Return-Path</td>
+                                <td id="sender-returnpath" class="font-mono text-sm break-all"></td>
+                            </tr>
+                            <tr id="sender-replyto-row" class="hidden">
+                                <td class="meta-label">Reply-To</td>
+                                <td id="sender-replyto" class="font-mono text-sm break-all text-amber-600 dark:text-amber-400"></td>
+                            </tr>
+                            <tr>
+                                <td class="meta-label">Domains</td>
+                                <td id="sender-domain-align"></td>
+                            </tr>
+                            <tr>
+                                <td class="meta-label">Subject</td>
+                                <td id="sender-subject" class="text-sm break-all"></td>
+                            </tr>
+                            <tr>
+                                <td class="meta-label">Date</td>
+                                <td id="sender-date" class="font-mono text-xs"></td>
+                            </tr>
+                            <tr>
+                                <td class="meta-label">Message-ID</td>
+                                <td id="sender-msgid" class="font-mono text-xs break-all text-gray-500"></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- Originating IP -->
+                    <div class="card">
+                        <h3 class="section-title">Originating IP</h3>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">First public IP in the Received chain — the actual sending server before any relays.</p>
+                        <table class="meta-table">
+                            <tr>
+                                <td class="meta-label">IP Address</td>
+                                <td id="origin-ip" class="font-mono font-bold text-blue-600 dark:text-blue-400"></td>
+                            </tr>
+                            <tr>
+                                <td class="meta-label">Hostname</td>
+                                <td id="origin-hostname" class="font-mono text-sm break-all"></td>
+                            </tr>
+                            <tr>
+                                <td class="meta-label">Owner / Org</td>
+                                <td id="origin-org" class="text-sm"></td>
+                            </tr>
+                            <tr>
+                                <td class="meta-label">Country</td>
+                                <td id="origin-country" class="text-sm"></td>
+                            </tr>
+                            <tr>
+                                <td class="meta-label">Abuse Contact</td>
+                                <td id="origin-abuse" class="font-mono text-xs text-amber-600 dark:text-amber-400 break-all"></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                </div>
+
+                <!-- Blacklist Status -->
+                <div class="card">
+                    <h3 class="section-title">Blacklist Status</h3>
+                    <div id="blacklist-status" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <!-- Abuse Report -->
+                <div class="card">
+                    <button id="abuse-report-btn" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition">
+                        One-Click Abuse Report (opens your email client)
+                    </button>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
+                        Pre-fills To, Subject, and body with analysis results. Sent from your own email client — nothing leaves your browser.
+                    </p>
+                </div>
+
+            </div><!-- /basic-view -->
+
+            <!-- ── Advanced View ───────────────────────────────────────────── -->
+            <div id="advanced-view" class="hidden space-y-4">
+
+                <!-- Received Hops -->
+                <div class="card">
+                    <h3 class="section-title">Received Chain (chronological)</h3>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Oldest hop first. Internal/private IPs are labeled. The origin row is marked.</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs font-mono">
+                            <thead class="bg-gray-100 dark:bg-gray-700 text-left">
+                                <tr>
+                                    <th class="px-3 py-2">#</th>
+                                    <th class="px-3 py-2">From IP</th>
+                                    <th class="px-3 py-2">From Hostname</th>
+                                    <th class="px-3 py-2">Received By</th>
+                                    <th class="px-3 py-2">Timestamp</th>
+                                    <th class="px-3 py-2 text-right">Δ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hops-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- DNS Records -->
+                <div class="card">
+                    <h3 class="section-title">DNS Records</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="text-sm font-semibold mb-2">SPF Record (TXT)</h4>
+                            <pre id="dns-spf" class="dns-pre"></pre>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-semibold mb-2">DMARC Record (_dmarc.domain)</h4>
+                            <pre id="dns-dmarc" class="dns-pre"></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RDAP Raw -->
+                <div class="card">
+                    <h3 class="section-title">RDAP Lookup (raw JSON)</h3>
+                    <pre id="rdap-json" class="dns-pre" style="max-height:320px;overflow-y:auto;"></pre>
+                </div>
+
+                <!-- Raw Headers -->
+                <div class="card">
+                    <h3 class="section-title">Raw Email Headers</h3>
+                    <pre id="raw-headers" class="dns-pre" style="max-height:400px;overflow-y:auto;"></pre>
+                </div>
+
+            </div><!-- /advanced-view -->
+
+        </div><!-- /results -->
+
+    </main>
+
+    <footer class="border-t border-gray-200 dark:border-gray-700 mt-8">
+        <div class="max-w-6xl mx-auto px-4 py-4 text-center text-xs text-gray-400 dark:text-gray-500 space-y-1">
+            <p>All analysis runs in your browser. External calls: <a href="https://cloudflare-dns.com" class="underline">Cloudflare DoH</a> (SPF/DMARC), <a href="https://dns.google" class="underline">Google DoH</a> (blacklists), <a href="https://rdap.org" class="underline">RDAP.org</a> (IP ownership).</p>
+            <p><a href="https://github.com/rashidhaji-arch/EmailAnalyzer" target="_blank" class="underline">GitHub</a></p>
+        </div>
+    </footer>
+
     <script src="app.js"></script>
 </body>
 </html>

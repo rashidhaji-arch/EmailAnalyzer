@@ -1,134 +1,221 @@
-/* View toggle button styling */
-.view-toggle-btn {
-    background-color: #e5e7eb;
-    color: #111827;
-    padding: 0.5rem 1.5rem;
+/* ─── Layout ──────────────────────────────────────────────────────────── */
+
+.card {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+    padding: 1.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    .card { background: #1f2937; }
+}
+
+.section-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin-bottom: 0.75rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    .section-title { color: #9ca3af; }
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────────── */
+
+.btn-primary {
+    padding: 0.5rem 1.25rem;
+    background: #2563eb;
+    color: white;
     font-weight: 600;
     border-radius: 0.375rem;
     border: none;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background 0.15s;
 }
+.btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.view-toggle-btn.active {
-    background-color: #2563eb;
-    color: white;
-}
-
-@media (prefers-color-scheme: dark) {
-    .view-toggle-btn {
-        background-color: #374151;
-        color: #f3f4f6;
-    }
-    .view-toggle-btn.active {
-        background-color: #2563eb;
-        color: white;
-    }
-}
-
-/* View section transitions */
-.view-section {
-    transition: opacity 0.3s ease;
-}
-
-.view-section.hidden {
-    display: none;
-}
-
-/* Authentication badge styling */
-.auth-badge {
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
+.btn-secondary {
+    padding: 0.5rem 1.25rem;
+    background: #e5e7eb;
+    color: #111827;
     font-weight: 600;
-    color: white;
-    text-align: center;
-    margin-bottom: 0.75rem;
-}
-
-.auth-pass {
-    background-color: #22c55e;
-}
-
-.auth-fail {
-    background-color: #ef4444;
-}
-
-.auth-unknown {
-    background-color: #9ca3af;
-}
-
-/* Blacklist item styling */
-.blacklist-item {
-    padding: 0.5rem 1rem;
     border-radius: 0.375rem;
-    margin-bottom: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.btn-secondary:hover { background: #d1d5db; }
+
+@media (prefers-color-scheme: dark) {
+    .btn-secondary { background: #374151; color: #f3f4f6; }
+    .btn-secondary:hover { background: #4b5563; }
+}
+
+/* ─── View Toggle ─────────────────────────────────────────────────────── */
+
+.view-toggle-btn {
+    padding: 0.4rem 1rem;
+    border-radius: 0.375rem;
+    border: 1px solid #d1d5db;
+    background: white;
+    color: #374151;
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
 }
-
-.blacklist-clean {
-    background-color: #dcfce7;
-    color: #166534;
-}
-
-.blacklist-listed {
-    background-color: #fee2e2;
-    color: #991b1b;
-}
-
-.blacklist-checking {
-    background-color: #fef3c7;
-    color: #92400e;
+.view-toggle-btn.active, .view-toggle-btn:hover {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
 }
 
 @media (prefers-color-scheme: dark) {
-    .blacklist-clean {
-        background-color: #064e3b;
-        color: #dcfce7;
-    }
-    .blacklist-listed {
-        background-color: #7f1d1d;
-        color: #fecaca;
-    }
-    .blacklist-checking {
-        background-color: #713f12;
-        color: #fef3c7;
+    .view-toggle-btn { background: #374151; color: #d1d5db; border-color: #4b5563; }
+    .view-toggle-btn.active, .view-toggle-btn:hover { background: #2563eb; color: white; border-color: #2563eb; }
+}
+
+/* ─── Auth Badges ─────────────────────────────────────────────────────── */
+
+.auth-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: white;
+}
+
+.auth-pass     { background: #16a34a; }
+.auth-fail     { background: #dc2626; }
+.auth-softfail { background: #ea580c; }
+.auth-neutral  { background: #6b7280; }
+.auth-none     { background: #6b7280; }
+.auth-error    { background: #dc2626; }
+.auth-unknown  { background: #4b5563; }
+
+/* ─── Spoofing Alert ──────────────────────────────────────────────────── */
+
+.spoof-banner {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    border-left: 4px solid #dc2626;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    color: #7f1d1d;
+}
+
+@media (prefers-color-scheme: dark) {
+    .spoof-banner {
+        background: #450a0a;
+        border-color: #991b1b;
+        color: #fca5a5;
     }
 }
 
-/* Error and warning alert styling */
+/* ─── Meta Table ──────────────────────────────────────────────────────── */
+
+.meta-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.meta-table tr { border-bottom: 1px solid #f3f4f6; }
+.meta-table tr:last-child { border-bottom: none; }
+.meta-table td { padding: 0.4rem 0; vertical-align: top; }
+.meta-label {
+    width: 7rem;
+    font-weight: 600;
+    color: #6b7280;
+    white-space: nowrap;
+    padding-right: 0.75rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+@media (prefers-color-scheme: dark) {
+    .meta-table tr { border-color: #374151; }
+    .meta-label { color: #9ca3af; }
+}
+
+/* ─── Blacklist Items ─────────────────────────────────────────────────── */
+
+.bl-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.bl-listed { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+.bl-clean  { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
+.bl-error  { background: #fffbeb; color: #92400e; border: 1px solid #fcd34d; }
+
+@media (prefers-color-scheme: dark) {
+    .bl-listed { background: #450a0a; color: #fca5a5; border-color: #991b1b; }
+    .bl-clean  { background: #052e16; color: #86efac; border-color: #166534; }
+    .bl-error  { background: #1c1008; color: #fcd34d; border-color: #92400e; }
+}
+
+/* ─── Messages ────────────────────────────────────────────────────────── */
+
 .error-alert {
-    background-color: #fee2e2;
-    border: 1px solid #fca5a5;
-    color: #b91c1c;
     padding: 0.75rem 1rem;
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
     border-radius: 0.375rem;
-    margin-bottom: 1rem;
+    color: #7f1d1d;
+    font-size: 0.875rem;
 }
 
 .warning-alert {
-    background-color: #fef3c7;
-    border: 1px solid #fcd34d;
-    color: #92400e;
     padding: 0.75rem 1rem;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
     border-radius: 0.375rem;
-    margin-bottom: 1rem;
-}
-
-/* Hops table styling */
-#hops-table tr:nth-child(even) {
-    background-color: #f9fafb;
-}
-
-#hops-table tr:hover {
-    background-color: #eff6ff;
+    color: #78350f;
+    font-size: 0.875rem;
 }
 
 @media (prefers-color-scheme: dark) {
-    #hops-table tr:nth-child(even) {
-        background-color: #374151;
-    }
-    #hops-table tr:hover {
-        background-color: #1e3a8a;
-    }
+    .error-alert   { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
+    .warning-alert { background: #1c1008; border-color: #92400e; color: #fcd34d; }
 }
+
+/* ─── DNS / Raw pre blocks ────────────────────────────────────────────── */
+
+.dns-pre {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    font-size: 0.72rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-x: auto;
+}
+
+@media (prefers-color-scheme: dark) {
+    .dns-pre { background: #111827; border-color: #374151; color: #d1d5db; }
+}
+
+/* ─── Loading Spinner ─────────────────────────────────────────────────── */
+
+.spinner {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid #bfdbfe;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
