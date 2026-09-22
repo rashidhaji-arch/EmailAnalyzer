@@ -6,7 +6,7 @@
 // Steps: https://dash.cloudflare.com → Workers & Pages → Create Worker
 //        Paste worker.js → Deploy → copy URL → paste below → push to GitHub
 //
-const WORKER_URL = ''; // e.g. 'https://email-dnsbl.yourname.workers.dev'
+const WORKER_URL = 'https://email-dnsbl.professionalemailservices3.workers.dev';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
