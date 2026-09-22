@@ -20,12 +20,19 @@
  */
 
 const DNSBL_LIST = [
-    { name: 'Spamhaus ZEN',  host: 'zen.spamhaus.org' },
-    { name: 'SpamCop',       host: 'bl.spamcop.net' },
-    { name: 'Barracuda',     host: 'b.barracudacentral.org' },
-    { name: 'UCEProtect L1', host: 'dnsbl.uceprotect.net' },
-    { name: 'PSBL',          host: 'psbl.surriel.com' },
-    { name: 'NordSpam',      host: 'dnsbl.nordspam.com' },
+    { name: 'Spamhaus ZEN',    host: 'zen.spamhaus.org' },
+    { name: 'SpamCop',         host: 'bl.spamcop.net' },
+    { name: 'Barracuda',       host: 'b.barracudacentral.org' },
+    { name: 'UCEProtect L1',   host: 'dnsbl.uceprotect.net' },
+    { name: 'UCEProtect L2',   host: 'dnsbl-2.uceprotect.net' },
+    { name: 'PSBL',            host: 'psbl.surriel.com' },
+    { name: 'NordSpam',        host: 'dnsbl.nordspam.com' },
+    { name: 'Mailspike',       host: 'bl.mailspike.net' },
+    { name: 'Blocklist.de',    host: 'ips.blocklist.de' },
+    { name: 'SpamRats',        host: 'all.spamrats.com' },
+    { name: 'DroneBL',         host: 'dnsbl.dronebl.org' },
+    { name: 'Backscatterer',   host: 'ips.backscatterer.org' },
+    { name: 'SORBS',           host: 'dnsbl.sorbs.net' },
 ];
 
 export default {

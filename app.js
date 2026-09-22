@@ -22,14 +22,6 @@ const PRIVATE_RANGES = [
     /^fd/i,
 ];
 
-const DNSBL_LIST = [
-    { name: 'Spamhaus ZEN',    host: 'zen.spamhaus.org' },
-    { name: 'SpamCop',         host: 'bl.spamcop.net' },
-    { name: 'Barracuda',       host: 'b.barracudacentral.org' },
-    { name: 'UCEProtect L1',   host: 'dnsbl.uceprotect.net' },
-    { name: 'PSBL',            host: 'psbl.surriel.com' },
-    { name: 'NordSpam',        host: 'dnsbl.nordspam.com' },
-];
 
 // ─── Header Parsing ───────────────────────────────────────────────────────────
 // RFC 5322 headers are prepended (newest first). Duplicate headers like
@@ -438,18 +430,29 @@ function renderBlacklists(results) {
     }
 
     if (results.length === 1 && results[0].name === '_worker_error') {
-        container.innerHTML = `<div class="bl-item bl-error">⚠️ Worker error: ${escapeHtml(results[0].error)}</div>`;
+        container.innerHTML = `<div class="bl-worker-error">⚠️ Worker error: ${escapeHtml(results[0].error)}</div>`;
         return;
     }
 
-    container.innerHTML = results.map(r => {
-        if (r.error) {
-            return `<div class="bl-item bl-error">⚠️ ${escapeHtml(r.name)}: ${escapeHtml(r.error)}</div>`;
-        }
-        return r.listed
-            ? `<div class="bl-item bl-listed">🚨 ${escapeHtml(r.name)}: LISTED</div>`
-            : `<div class="bl-item bl-clean">✅ ${escapeHtml(r.name)}: Clean</div>`;
-    }).join('');
+    // Split into two equal columns, left half then right half
+    const half = Math.ceil(results.length / 2);
+    const left = results.slice(0, half);
+    const right = results.slice(half);
+
+    function statusTd(r) {
+        if (!r) return '<td></td><td></td>';
+        let cls, label;
+        if (r.error)       { cls = 'bl-status-error';  label = 'Error';  }
+        else if (r.listed) { cls = 'bl-status-listed'; label = 'LISTED'; }
+        else               { cls = 'bl-status-clean';  label = 'Clean';  }
+        return `<td class="bl-name-cell">${escapeHtml(r.name)}</td><td class="bl-status-td ${cls}">${label}</td>`;
+    }
+
+    const rows = Array.from({ length: half }, (_, i) =>
+        `<tr>${statusTd(left[i])}<td class="bl-col-gap"></td>${statusTd(right[i])}</tr>`
+    ).join('');
+
+    container.innerHTML = `<table class="bl-grid"><tbody>${rows}</tbody></table>`;
 }
 
 function renderHopsTable(hops) {
@@ -559,16 +562,30 @@ function decodeHeader(str) {
 function showError(msg) {
     const div = document.createElement('div');
     div.className = 'error-alert';
-    div.innerHTML = `<strong>Error:</strong> ${escapeHtml(msg)}
-        <button onclick="this.parentElement.remove()" class="float-right font-bold ml-4">×</button>`;
+    const label = document.createElement('strong');
+    label.textContent = 'Error: ';
+    const text = document.createElement('span');
+    text.textContent = msg;
+    const btn = document.createElement('button');
+    btn.textContent = '×';
+    btn.className = 'float-right font-bold ml-4';
+    btn.addEventListener('click', () => div.remove());
+    div.append(label, text, btn);
     document.getElementById('messages').appendChild(div);
 }
 
 function showWarning(msg) {
     const div = document.createElement('div');
     div.className = 'warning-alert';
-    div.innerHTML = `<strong>Warning:</strong> ${escapeHtml(msg)}
-        <button onclick="this.parentElement.remove()" class="float-right font-bold ml-4">×</button>`;
+    const label = document.createElement('strong');
+    label.textContent = 'Warning: ';
+    const text = document.createElement('span');
+    text.textContent = msg;
+    const btn = document.createElement('button');
+    btn.textContent = '×';
+    btn.className = 'float-right font-bold ml-4';
+    btn.addEventListener('click', () => div.remove());
+    div.append(label, text, btn);
     document.getElementById('messages').appendChild(div);
 }
 
@@ -635,7 +652,7 @@ async function analyzeEmail(rawText) {
         const sendingDomain = sender.returnPath?.domain || sender.from?.domain;
         document.getElementById('dns-spf').textContent = 'Querying…';
         document.getElementById('dns-dmarc').textContent = 'Querying…';
-        document.getElementById('blacklist-status').innerHTML = '<div class="text-sm text-gray-500 dark:text-gray-400 p-2">Checking blacklists via DNS…</div>';
+        document.getElementById('blacklist-status').innerHTML = '<p class="text-sm text-gray-400 dark:text-gray-500 py-1">Checking blacklists…</p>';
         document.getElementById('rdap-json').textContent = 'Loading…';
 
         const [rdap, spf, dmarc, blResults] = await Promise.all([
